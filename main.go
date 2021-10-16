@@ -5,14 +5,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-
-	"golang.org/x/net/ipv4"
+	"time"
 )
 
 const ssdpAddress = "239.255.255.250:1900"
+const timeout = 5 * time.Second
 
 func main() {
-
 	udpAddr, err := net.ResolveUDPAddr("udp4", ssdpAddress)
 	if err != nil {
 		panic(err)
@@ -44,11 +43,16 @@ func main() {
 		panic(err)
 	}
 
+	conn.SetReadDeadline(time.Now().Add(timeout))
 	buffer := make([]byte, 1024)
-	n, _, addr, err := pConn.ReadFrom(buffer)
-	if err != nil {
-		panic(err)
+	for {
+		n, addr, err := conn.ReadFromUDP(buffer)
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Address: %v\n\n%s\n\n", addr, buffer[:n])
 	}
-	fmt.Println(addr)
-	fmt.Println(string(buffer[:n]))
 }
