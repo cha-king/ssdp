@@ -33,9 +33,9 @@ func main() {
 		panic(err)
 	}
 	request.Host = ssdpAddress
-	request.Header["ST"] = []string{"ssdp:all"}
-	request.Header["MAN"] = []string{`"ssdp:discover"`}
-	request.Header["MX"] = []string{"5"}
+	request.Header.Set("ST", "ssdp:all")
+	request.Header.Set("MAN", `"ssdp:discover"`)
+	request.Header.Set("MX", "5")
 	raw, err := httputil.DumpRequest(request, true)
 	if err != nil {
 		panic(err)
