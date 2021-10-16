@@ -25,9 +25,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	pConn := ipv4.NewPacketConn(conn)
-	pConn.JoinGroup(nil, udpAddr)
-
 	request, err := http.NewRequest("M-SEARCH", "*", nil)
 	if err != nil {
 		panic(err)
@@ -42,7 +39,7 @@ func main() {
 	}
 	fmt.Println(string(raw))
 
-	_, err = pConn.WriteTo(raw, nil, udpAddr)
+	_, err = conn.WriteToUDP(raw, udpAddr)
 	if err != nil {
 		panic(err)
 	}
