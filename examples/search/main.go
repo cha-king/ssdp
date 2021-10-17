@@ -12,6 +12,6 @@ func main() {
 		panic(err)
 	}
 	for _, response := range responses {
-		fmt.Println(response)
+		fmt.Printf("%+v\n\n", response)
 	}
 }

@@ -13,7 +13,15 @@ import (
 // Additional time to wait for responses beyond provided MX value
 const ssdpTimeout = time.Second * 1
 
-func Search(st string, mx int, laddr *net.UDPAddr) ([]*http.Response, error) {
+// SearchResponse represents the response from an SSDP search request.
+type SearchResponse struct {
+	Location string
+	ST       string
+	USN      string
+	AL       string
+}
+
+func Search(st string, mx int, laddr *net.UDPAddr) ([]*SearchResponse, error) {
 	conn, err := net.ListenUDP("udp4", laddr)
 	if err != nil {
 		return nil, err
@@ -38,7 +46,7 @@ func Search(st string, mx int, laddr *net.UDPAddr) ([]*http.Response, error) {
 	timeout := time.Duration(mx)*time.Second + ssdpTimeout
 	conn.SetDeadline(time.Now().Add(timeout))
 	bufReader := bufio.NewReader(conn)
-	responses := []*http.Response{}
+	sResps := []*SearchResponse{}
 	for {
 		response, err := http.ReadResponse(bufReader, request)
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -47,10 +55,18 @@ func Search(st string, mx int, laddr *net.UDPAddr) ([]*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		responses = append(responses, response)
+
+		sResp := SearchResponse{
+			Location: response.Header.Get("Location"),
+			ST:       response.Header.Get("ST"),
+			USN:      response.Header.Get("USN"),
+			AL:       response.Header.Get("AL"),
+		}
+
+		sResps = append(sResps, &sResp)
 	}
 
-	return responses, nil
+	return sResps, nil
 }
 
 func newSearchRequest(st string, mx int) (*http.Request, error) {
