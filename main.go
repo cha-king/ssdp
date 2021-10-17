@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"net/http"
@@ -43,16 +44,19 @@ func main() {
 		panic(err)
 	}
 
-	conn.SetReadDeadline(time.Now().Add(timeout))
-	buffer := make([]byte, 1024)
+	conn.SetDeadline(time.Now().Add(timeout))
+	bufReader := bufio.NewReader(conn)
+	responses := []*http.Response{}
 	for {
-		n, addr, err := conn.ReadFromUDP(buffer)
+		response, err := http.ReadResponse(bufReader, request)
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			break
 		}
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Address: %v\n\n%s\n\n", addr, buffer[:n])
+		fmt.Printf("%+v\n\n\n", response)
+		responses = append(responses, response)
 	}
+	fmt.Println(len(responses))
 }
