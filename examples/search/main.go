@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/cha-king/ssdp"
@@ -12,6 +13,20 @@ func main() {
 		panic(err)
 	}
 	for _, response := range responses {
-		fmt.Printf("%+v\n\n", response)
+		j, err := json.MarshalIndent(response, "", "    ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(j))
+
+		// fmt.Printf("%+v\n\n", response)
 	}
+}
+
+func PrintStruct(val interface{}) {
+	j, err := json.MarshalIndent(val, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(j))
 }

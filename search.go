@@ -21,7 +21,7 @@ type SearchResponse struct {
 	AL       string
 }
 
-func Search(st string, mx int, laddr *net.UDPAddr) ([]*SearchResponse, error) {
+func Search(st string, mx int, laddr *net.UDPAddr) ([]SearchResponse, error) {
 	conn, err := net.ListenUDP("udp4", laddr)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func Search(st string, mx int, laddr *net.UDPAddr) ([]*SearchResponse, error) {
 	timeout := time.Duration(mx)*time.Second + ssdpTimeout
 	conn.SetDeadline(time.Now().Add(timeout))
 	bufReader := bufio.NewReader(conn)
-	sResps := []*SearchResponse{}
+	sResps := []SearchResponse{}
 	for {
 		response, err := http.ReadResponse(bufReader, request)
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -63,7 +63,7 @@ func Search(st string, mx int, laddr *net.UDPAddr) ([]*SearchResponse, error) {
 			AL:       response.Header.Get("AL"),
 		}
 
-		sResps = append(sResps, &sResp)
+		sResps = append(sResps, sResp)
 	}
 
 	return sResps, nil
