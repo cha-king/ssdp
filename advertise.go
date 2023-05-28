@@ -35,7 +35,6 @@ func Advertise(ctx context.Context, services []Service, errorsChan chan<- error)
 			errorsChan <- err
 			continue
 		}
-		fmt.Println("Request received")
 
 		reader := bytes.NewReader(data[:n])
 
@@ -60,6 +59,8 @@ func Advertise(ctx context.Context, services []Service, errorsChan chan<- error)
 
 		st := request.Header.Get("ST")
 
+		fmt.Println(addr, st)
+
 		for _, service := range services {
 			fmt.Println("HERE")
 			fmt.Println(st)
@@ -83,8 +84,6 @@ func Advertise(ctx context.Context, services []Service, errorsChan chan<- error)
 				errorsChan <- err
 				continue
 			}
-
-			fmt.Println(string(respBytes))
 
 			_, err = conn.WriteToUDP(respBytes, addr)
 			if err != nil {
