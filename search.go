@@ -18,7 +18,6 @@ type SearchResponse struct {
 	Location string
 	ST       string
 	USN      string
-	AL       string
 }
 
 func Search(st string, mx int, laddr *net.UDPAddr) ([]SearchResponse, error) {
@@ -60,7 +59,6 @@ func Search(st string, mx int, laddr *net.UDPAddr) ([]SearchResponse, error) {
 			Location: response.Header.Get("Location"),
 			ST:       response.Header.Get("ST"),
 			USN:      response.Header.Get("USN"),
-			AL:       response.Header.Get("AL"),
 		}
 
 		sResps = append(sResps, sResp)
