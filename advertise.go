@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -36,7 +37,9 @@ func Advertise(ctx context.Context, services []Service, errorsChan chan<- error)
 	data := make([]byte, 4096)
 	for {
 		n, addr, err := conn.ReadFromUDP(data)
-		if err != nil {
+		if errors.Is(err, net.ErrClosed) {
+			return
+		} else if err != nil {
 			errorsChan <- err
 			continue
 		}
