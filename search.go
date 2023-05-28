@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -81,7 +80,7 @@ func newSearchRequest(searchTarget string, mx int) (*http.Request, error) {
 	request.Host = ssdpUdpAddr.String()
 
 	request.Header.Set("MAN", `"ssdp:discover"`)
-	request.Header.Set("ST", fmt.Sprintf("ssdp:%s", searchTarget))
+	request.Header.Set("ST", searchTarget)
 	request.Header.Set("MX", strconv.Itoa(mx))
 
 	return request, nil

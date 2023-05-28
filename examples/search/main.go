@@ -14,7 +14,7 @@ func main() {
 	defer cancel()
 	responses := make(chan ssdp.SearchResponse)
 	errorsChan := make(chan error)
-	go ssdp.Search(ctx, "all", 3, nil, responses, errorsChan)
+	go ssdp.Search(ctx, ssdp.All, 3, nil, responses, errorsChan)
 
 	for {
 		select {
