@@ -2,16 +2,14 @@ package ssdp
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
-	"time"
 )
-
-// Additional time to wait for responses beyond provided MX value
-const ssdpTimeout = time.Second * 1
 
 // SearchResponse represents the response from an SSDP search request.
 type SearchResponse struct {
@@ -20,39 +18,49 @@ type SearchResponse struct {
 	USN      string
 }
 
-func Search(st string, mx int, laddr *net.UDPAddr) ([]SearchResponse, error) {
+func Search(ctx context.Context, st string, mx int, laddr *net.UDPAddr, responses chan<- SearchResponse, errorsChan chan<- error) {
+	defer close(responses)
+	defer close(errorsChan)
+
 	conn, err := net.ListenUDP("udp4", laddr)
 	if err != nil {
-		return nil, err
+		errorsChan <- err
+		return
 	}
 	defer conn.Close()
 
+	go func() {
+		<-ctx.Done()
+		conn.Close()
+	}()
+
 	request, err := newSearchRequest(st, mx)
 	if err != nil {
-		return nil, err
+		errorsChan <- err
+		return
 	}
 
 	requestBytes, err := httputil.DumpRequest(request, false)
 	if err != nil {
-		return nil, err
+		errorsChan <- err
+		return
 	}
 
 	_, err = conn.WriteToUDP(requestBytes, ssdpUdpAddr)
 	if err != nil {
-		return nil, err
+		errorsChan <- err
+		return
 	}
 
-	timeout := time.Duration(mx)*time.Second + ssdpTimeout
-	conn.SetDeadline(time.Now().Add(timeout))
 	bufReader := bufio.NewReader(conn)
-	sResps := []SearchResponse{}
+
 	for {
 		response, err := http.ReadResponse(bufReader, request)
-		if err, ok := err.(net.Error); ok && err.Timeout() {
-			break
-		}
-		if err != nil {
-			return nil, err
+		if errors.Is(err, net.ErrClosed) {
+			return
+		} else if err != nil {
+			errorsChan <- err
+			continue
 		}
 
 		sResp := SearchResponse{
@@ -60,11 +68,8 @@ func Search(st string, mx int, laddr *net.UDPAddr) ([]SearchResponse, error) {
 			ST:       response.Header.Get("ST"),
 			USN:      response.Header.Get("USN"),
 		}
-
-		sResps = append(sResps, sResp)
+		responses <- sResp
 	}
-
-	return sResps, nil
 }
 
 func newSearchRequest(st string, mx int) (*http.Request, error) {
