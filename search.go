@@ -21,6 +21,11 @@ func Search(ctx context.Context, searchTarget string, mx int, laddr *net.UDPAddr
 	defer close(responses)
 	defer close(errorsChan)
 
+	if !(mx >= 1 && mx <= 5) {
+		errorsChan <- errors.New("mx must be between 1 and 5")
+		return
+	}
+
 	conn, err := net.ListenUDP("udp4", laddr)
 	if err != nil {
 		errorsChan <- err
