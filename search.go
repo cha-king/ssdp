@@ -13,12 +13,12 @@ import (
 
 // SearchResponse represents the response from an SSDP search request.
 type SearchResponse struct {
-	Location string
-	ST       string
-	USN      string
+	Location          string
+	SearchTarget      string
+	UniqueServiceName string
 }
 
-func Search(ctx context.Context, st string, mx int, laddr *net.UDPAddr, responses chan<- SearchResponse, errorsChan chan<- error) {
+func Search(ctx context.Context, searchTarget string, mx int, laddr *net.UDPAddr, responses chan<- SearchResponse, errorsChan chan<- error) {
 	defer close(responses)
 	defer close(errorsChan)
 
@@ -34,7 +34,7 @@ func Search(ctx context.Context, st string, mx int, laddr *net.UDPAddr, response
 		conn.Close()
 	}()
 
-	request, err := newSearchRequest(st, mx)
+	request, err := newSearchRequest(searchTarget, mx)
 	if err != nil {
 		errorsChan <- err
 		return
@@ -64,15 +64,15 @@ func Search(ctx context.Context, st string, mx int, laddr *net.UDPAddr, response
 		}
 
 		sResp := SearchResponse{
-			Location: response.Header.Get("Location"),
-			ST:       response.Header.Get("ST"),
-			USN:      response.Header.Get("USN"),
+			Location:          response.Header.Get("Location"),
+			SearchTarget:      response.Header.Get("ST"),
+			UniqueServiceName: response.Header.Get("USN"),
 		}
 		responses <- sResp
 	}
 }
 
-func newSearchRequest(st string, mx int) (*http.Request, error) {
+func newSearchRequest(searchTarget string, mx int) (*http.Request, error) {
 	request, err := http.NewRequest("M-SEARCH", "*", nil)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func newSearchRequest(st string, mx int) (*http.Request, error) {
 	request.Host = ssdpUdpAddr.String()
 
 	request.Header.Set("MAN", `"ssdp:discover"`)
-	request.Header.Set("ST", fmt.Sprintf("ssdp:%s", st))
+	request.Header.Set("ST", fmt.Sprintf("ssdp:%s", searchTarget))
 	request.Header.Set("MX", strconv.Itoa(mx))
 
 	return request, nil
