@@ -28,6 +28,11 @@ func Advertise(ctx context.Context, services []Service, errorsChan chan<- error)
 		return
 	}
 
+	go func() {
+		<-ctx.Done()
+		conn.Close()
+	}()
+
 	data := make([]byte, 4096)
 	for {
 		n, addr, err := conn.ReadFromUDP(data)
@@ -44,52 +49,54 @@ func Advertise(ctx context.Context, services []Service, errorsChan chan<- error)
 			continue
 		}
 
-		mxStr := request.Header.Get("MX")
-		if mxStr == "" {
-			errorsChan <- fmt.Errorf("read from %s: mx header missing", addr)
+		go handleRequest(services, conn, addr, request, errorsChan)
+	}
+}
+
+func handleRequest(services []Service, conn *net.UDPConn, addr *net.UDPAddr, request *http.Request, errorsChan chan<- error) {
+	mxStr := request.Header.Get("MX")
+	if mxStr == "" {
+		errorsChan <- fmt.Errorf("read from %s: mx header missing", addr)
+		return
+	}
+	mx, err := strconv.Atoi(mxStr)
+	if err != nil || !(mx >= 1 && mx <= 5) {
+		errorsChan <- fmt.Errorf("read from %s: invalid mx value", addr)
+		return
+	}
+	delay := time.Duration(rand.Float64() * float64(mx) * float64(time.Second))
+	time.Sleep(delay)
+
+	st := request.Header.Get("ST")
+
+	fmt.Println(addr, st)
+
+	for _, service := range services {
+		if st != "ssdp:all" && st != service.Type {
 			continue
 		}
-		mx, err := strconv.Atoi(mxStr)
-		if err != nil || !(mx >= 1 && mx <= 5) {
-			errorsChan <- fmt.Errorf("read from %s: invalid mx value", addr)
+
+		resp := &http.Response{
+			StatusCode: 200,
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Header: http.Header{
+				"Ext":      []string{""},
+				"Location": []string{service.Location},
+				"ST":       []string{service.Type},
+				"USN":      []string{service.Name},
+			},
+		}
+		respBytes, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			errorsChan <- err
 			continue
 		}
-		delay := time.Duration(rand.Float64() * float64(mx) * float64(time.Second))
-		time.Sleep(delay)
 
-		st := request.Header.Get("ST")
-
-		fmt.Println(addr, st)
-
-		for _, service := range services {
-			fmt.Println("HERE")
-			fmt.Println(st)
-			if st != "ssdp:all" && st != service.Type {
-				continue
-			}
-
-			resp := &http.Response{
-				StatusCode: 200,
-				ProtoMajor: 1,
-				ProtoMinor: 1,
-				Header: http.Header{
-					"Ext":      []string{""},
-					"Location": []string{service.Location},
-					"ST":       []string{service.Type},
-					"USN":      []string{service.Name},
-				},
-			}
-			respBytes, err := httputil.DumpResponse(resp, true)
-			if err != nil {
-				errorsChan <- err
-				continue
-			}
-
-			_, err = conn.WriteToUDP(respBytes, addr)
-			if err != nil {
-				errorsChan <- err
-				continue
-			}
+		_, err = conn.WriteToUDP(respBytes, addr)
+		if err != nil {
+			errorsChan <- err
+			continue
 		}
 	}
 }
