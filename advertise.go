@@ -44,9 +44,7 @@ func Advertise(ctx context.Context, services []Service, errs chan<- error) {
 			continue
 		}
 
-		reader := bytes.NewReader(data[:n])
-
-		request, err := http.ReadRequest(bufio.NewReader(reader))
+		request, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(data[:n])))
 		if err != nil {
 			errs <- err
 			continue
@@ -71,6 +69,10 @@ func handleRequest(services []Service, conn *net.UDPConn, addr *net.UDPAddr, req
 	time.Sleep(delay)
 
 	st := request.Header.Get("ST")
+	if st == "" {
+		errs <- fmt.Errorf("read from %s: st header missing", addr)
+		return
+	}
 
 	fmt.Println(addr, st)
 
