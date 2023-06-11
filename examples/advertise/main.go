@@ -14,8 +14,8 @@ var services = []ssdp.Service{
 		Location: "https://127-0-0-1.3d858ef0-5047-47df-b5a8-62234e314ac0.local.cha-king.com:8081",
 	},
 	{
-		Type:     "verkada:hubdevice",
-		Name:     "uuid:3d858ef0-5047-47df-b5a8-62234e314ac0::verkada:hubdevice",
+		Type:     "cha-king:hubdevice",
+		Name:     "uuid:3d858ef0-5047-47df-b5a8-62234e314ac0::cha-king:hubdevice",
 		Location: "https://127-0-0-1.3d858ef0-5047-47df-b5a8-62234e314ac0.local.cha-king.com:8081",
 	},
 }
